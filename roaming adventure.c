@@ -21,13 +21,13 @@
 
 ///only 0-9 are valid for this input
 //land types
-#define FOREST              '1'   //m
-#define PATH                '2'   //O
-#define DESSERT             '3'   //:
-#define WATER               '4'   //w
-#define PLAINS              '5'   //i
-#define SPECIAL             '6'   //X
-#define MOUNTAINS           '7'   //M
+#define FOREST              'T'   //T
+#define PATH                'O'   //O
+#define DESSERT             ':'   //:
+#define WATER               '^'   //^
+#define PLAINS              'i'   //i
+#define SPECIAL             'X'   //X
+#define MOUNTAINS           'A'   //A
 
 //towns & villages & cities & kingdoms
 #define MYSTOGEN            1
@@ -56,10 +56,12 @@
 //, int cave1[], int cave2[], int temple[], int waterPalace[]
 #define MAPSTRINGA mainMap
 //, cave1, cave2, temple, waterPalace
+#define UV name
+//, name, boat, girlfriend
 
 //global variables
-int debug = 1;
-int detaildebug = 1;
+int debug = 0;
+int detaildebug = 0;
 
 void loadMaps(MAPSTRINGS);
 void printmap(int xp, int yp, int MapID, MAPSTRINGS);
@@ -72,42 +74,58 @@ void disMainMenue();
 void SpecialClear(char stringstorage[]);
 void AllClear(char stringstorage[]);
 void newgame(char name[]);
-void delay(float x);
+void delay(double x);
 void sptype(char x[]);
-void chat(char x[]);
+void chat(char c[], char d[],char name[]);
 void title();
-void walk(int MapID,int* x_Pos,int* y_Pos, MAPSTRINGS);
-
-
+int walk(int MapID,int* x_Pos,int* y_Pos,char journey[], MAPSTRINGS, char name[]);
+void insert(char x[],char y[],char name[]);
+int stbreak(int s, int e, char x[], char y[]);
+int checkL(int MapID,int x,int y,char var[],char journey[], MAPSTRINGS);
+void CStr(char str1[],char str2[]);
 
 int main()
 {
     //initialize variables
-    int x_Pos = 0, y_Pos = 0, location = 0, MapID = 0, holdData = 0, dimx = 0, dimy = 0, mstate = 0;
+    int x_Pos = 0, y_Pos = 0, location = 0, MapID = 0, playerPath = 1, dimx = 0, dimy = 0, mstate = 0;
     // CMap[] = {'\0'}, cave1[], cave2[], temple[], waterPalace[];
-    char  name[] = {'\0'}, mainMap[MMX][MMY];
+    ///journey variables {'boat', 'mountaineering kit', '\0'}
+    char  name[100] = {'\0'}, journey[50] = {'\0'}, mainMap[MMX][MMY], CMap[150*200] = {'\0'};
 
     mstate=mainMenu();
     switch (mstate)
     {
-        case 1:newgame(name);
+        case 1:
+            newgame(name);
+            MapID=1;
+            x_Pos=y_Pos=0;
+            journey[1]='0';
+            journey[2]='0';
+            playerPath=0;
             break;
-        case 2:sptype("not implemented yet");
+        case 2:
+            sptype("not implemented yet");
             break;
-        case 3:sptype("not implemented yet");
+        case 3:
+            sptype("not implemented yet");
             break;
-        case 4:sptype("exiting...");
+        case 4:
+            sptype("exiting...");
             break;
     }
+    loadMaps(mainMap);
 
-    if (mstate!=4)
+    if (mstate==1)
     {
-        loadMaps(mainMap);
+        do
+        {    if (debug==1)
+            printf("\nmain loop\n");
+    
+            //setCurrentMap(&MapID, CMap, &dimx, &dimy, MAPSTRINGA);
+            printmap(x_Pos, y_Pos, MapID, MAPSTRINGA);
+            playerPath=walk(MapID, &x_Pos, &y_Pos, journey, MAPSTRINGA, UV);
 
-        //setCurrentMap(&MapID, CMap, &dimx, &dimy, MAPSTRINGA);
-        printmap(x_Pos, y_Pos, MAINMAP, MAPSTRINGA);
-        walk(MapID, &x_Pos, &y_Pos, MAPSTRINGA);
-
+        }while(playerPath==0);
     }
     return 0;
 }
@@ -132,7 +150,7 @@ void loadMaps(MAPSTRINGS)
     //check if the file opened correctly; if not throw error and exit
     if (fp == 0)
     {
-        printf("ERROR!  couldn't open MainMap.dat!");
+        printf("ERROR!  Couldn't open MainMap.dat!");
         exit(101);
     }
 
@@ -210,7 +228,7 @@ void setCurrentMap(int* MapID, int CMap[],int* dimx, int* dimy, MAPSTRINGS)
 void printmap(int xp, int yp, int MapID, MAPSTRINGS)
 {
     if (debug == 0)
-        system("cls");
+        system("clear");
     if (debug==1)
         printf("\nprintmap\n");
 
@@ -219,9 +237,9 @@ void printmap(int xp, int yp, int MapID, MAPSTRINGS)
 
     if (MapID == MAINMAP)
     {
-        for(x=0;x<MMX;x++)
+        for(x=0;x<MMX-1;x++)
             printf("=");
-        printf("\n");
+            printf("\n");
         for(y=0;y<MMY;y++)
         {
             for(x=0;x<MMX;x++)
@@ -232,9 +250,10 @@ void printmap(int xp, int yp, int MapID, MAPSTRINGS)
                     printf("@");
             }
         }
-        printf("\n");
-        for(x=0;x<MMX;x++)
+            printf("\n");
+        for(x=0;x<MMX-1;x++)
             printf("=");
+            printf("\n");
     }
     return;
 }
@@ -244,10 +263,10 @@ int mainMenu()
     if (debug==1)
         printf("\nmainmenu\n");
     //char arrays[] = {'5','\0'};
-    system("cls");
+    system("clear");
     disMainMenue();
 
-    char x[] = {'\0'};
+    char x[75] = {'\0'};
     int y = 0;
 
     GetInput(0, x);
@@ -259,7 +278,7 @@ int mainMenu()
     return y;
 }
 
-int readMenu(char x[])
+int readMenu(char x[75])
 {
     if (debug==1)
         printf("\readMenu\n");
@@ -267,31 +286,66 @@ int readMenu(char x[])
     int y = 0;
 
     SpecialClear(x);//clear case formatting
-
-    if (compareStrings(x, "newgame") == 1)
+    while(y==0)
     {
-    if (debug==1)
-        printf("\1true\n");
-        y = 1;
+        if (compareStrings(x, "newgame") == 1)
+        {
+            if (debug==1)
+                printf("\1true\n");
+            y = 1;
+        }
+        else if (compareStrings(x, "1newgame") == 1)
+        {
+            y = 1;
+        }
+        else if (compareStrings(x, "1") == 1)
+        {
+            y = 1;
+        }
+        else if (compareStrings(x, "2loadgame") == 1)
+        {
+            y = 2;
+        }
+        else if (compareStrings(x, "loadgame") == 1)
+        {
+            y = 2;
+        }
+        else if (compareStrings(x, "2") == 1)
+        {
+            y = 2;
+        }
+        else if (compareStrings(x, "cheats") == 1)
+        {
+            y = 3;
+        }
+        else if (compareStrings(x, "3") == 1)
+        {
+            y = 3;
+        }
+        else if (compareStrings(x, "3cheats") == 1)
+        {
+            y = 3;
+        }
+        else if (compareStrings(x, "exit") == 1)
+        {
+            y = 4;
+        }
+        else if (compareStrings(x, "4exit") == 1)
+        {
+            y = 4;
+        }
+        else if (compareStrings(x, "4") == 1)
+        {
+            y = 4;
+        }
+        else
+        {
+            y=0;
+            sptype("I didn't quite get that, please try again: ");
+            GetInput(0, x);
+            SpecialClear(x);
+        }
     }
-    else if (compareStrings(x, "1newgame") == 1)
-    {
-        y = 1;
-    }
-    else if (compareStrings(x, "1") == 1)
-    {
-        y = 1;
-    }
-    else if (compareStrings(x, " ") == 1)
-    {
-        y = 2;
-    }
-    else if (compareStrings(x, "for") == 1)
-    {
-        y = 3;
-    }
-    else
-        y=0;
 
     return y;
 }
@@ -310,17 +364,20 @@ int compareStrings(char string1[],char string2[])
             printf("%c %c ", string1[x], string2[x]);
         if (string1[x] != string2[x])
         {
-           if (detaildebug==1)
-            printf("F ");
+            if (detaildebug==1)
+                printf("F ");
             t=0;
         }
         if (detaildebug==1)
             printf("ComSTR:%d\n", x);
         x++;
     }
+    if (!((string1[x]=='\0')&&(string2[x]=='\0')))
+        t=0;
+
 
     if (debug == 1)
-    printf(" %d\n",t);
+        printf(" %d\n",t);
 
     return t;
 }
@@ -411,12 +468,6 @@ void CaseClear(char stringstorage[])
 
         else if (stringstorage[i] == 'Z')
             stringstorage[i]='z';
-
-        else if (stringstorage[i] == ' ')
-            ;
-
-        else if (stringstorage[i]=='\n')
-            ;
         else
             ;
         i++;
@@ -426,30 +477,35 @@ void CaseClear(char stringstorage[])
 
 void GetInput(int x, char arrays[])
 {
+    if (debug==1)
+        printf("\nget input\n");
+    char y=' ';
     if (x==1)
     {
         int i = 0;
-        while ((arrays[i]=getchar()) != '\n')
+        scanf("%c", &y);
+        while (y != '\n')
         {
+            arrays[i]=y;
             i++;
+            scanf("%c", &y);
         }
-            if (arrays[i]=='\n')
-                arrays[i]='\0';
+        arrays[i]='\0';
     }
     else if (x==0)
     {
         int i = 0;
-        while ((arrays[i]=getchar()) != '\n')
+        scanf(" %c", &y);
+        while (y != '\n')
         {
-            if  (!((i==0) && (arrays[i]==' ')))
+            arrays[i]=y;
             i++;
+            scanf("%c", &y);
         }
-            if (arrays[i]=='\n')
-                arrays[i]='\0';
+        arrays[i]='\0';
     }
     else
         printf("error in GetInput");
-
     return;
 }
 
@@ -469,7 +525,7 @@ void SpecialClear(char stringstorage[])
 {
 
     if (debug == 1)
-    printf("\nSpecialClear\n");
+        printf("\nSpecialClear\n");
     int i = 0;
     while (stringstorage[i] != '\0')
     {
@@ -562,29 +618,16 @@ void SpecialClear(char stringstorage[])
             stringstorage[i]=' ';
         i++;
     }
-    i = 0;
-    int ii = 0;
-    int width;
-    for (width=0;stringstorage[width]!='\0';width++)
-        ;
-    while (stringstorage[i]!='\0'&&(ii<=width))
+    int x = 0;
+    int y = 0;
+    while (stringstorage[y]!='\0')
     {
-        if (stringstorage[i]==' ')
-        {
-            do
-            {
-            ii++;
-            if (debug == 1)
-                printf("\nSP CLEAR %d\n",i);
-            stringstorage[i]=stringstorage[i+ii];
-            }while (stringstorage[i]==' ');
-            i++;
-        }
-        else
-        {
-            i++;
-        }
+        stringstorage[x]=stringstorage[y];
+        if (stringstorage[x]!=' ')
+            x++;
+        y++;
     }
+    stringstorage[x]=stringstorage[y];
     return;
 }
 
@@ -685,29 +728,16 @@ void AllClear(char stringstorage[])
             stringstorage[i]=' ';
         i++;
     }
-    i = 0;
-    int ii = 0;
-    int width;
-    for (width=0;stringstorage[width]!='\0';width++)
-        ;
-    while (stringstorage[i]!='\0'&&(ii<=width))
+    int x = 0;
+    int y = 0;
+    while (stringstorage[y]!='\0')
     {
-        if (stringstorage[i]==' ')
-        {
-            do
-            {
-            ii++;
-            if (debug == 1)
-                printf("\nSP CLEAR %d\n",i);
-            stringstorage[i]=stringstorage[i+ii];
-            }while (stringstorage[i]==' ');
-            i++;
-        }
-        else
-        {
-            i++;
-        }
+        stringstorage[x]=stringstorage[y];
+        if (stringstorage[x]!=' ')
+            x++;
+        y++;
     }
+    stringstorage[x]=stringstorage[y];
     return;
 }
 
@@ -721,14 +751,14 @@ void newgame(char name[])//name is passed in to get the players username
     int t1,t2;
     //start new game
     printf("starting new game");
-    system("cls");
+    system("clear");
     sptype("starting new game...");
 
     //code to get the player's name
     do
     {
         printf("\n\n");
-        system("cls");
+        system("clear");
         sptype("Please enter your name: ");
         GetInput(0, name);
         sptype("\nI see, your name is ");
@@ -755,33 +785,46 @@ void newgame(char name[])//name is passed in to get the players username
             else
             {
                 scheck = 0;
-                sptype("\nI didn't quite get that, could you confirm again? y/n");
+                sptype("\nI didn't quite get that, could you confirm again? y/n ");
                 GetInput(0, confirm);
             }
         }while (scheck == 0);
     }while (check == 0);         //ends name loops
 
-    //clear screen and bigin the introduction to the game.
-    system("cls");
+    //clear screen and begin the introduction to the game.
+    system("clear");
     char temp[]={'\0'};
-    sptype("welcome "); sptype(name); sptype(", to Lotaro.  Lotaro is a land of many wonders, where forces of light and darkness clash daily.  ");
-    sptype("Many heroes seek to make a name for themselves here... but that is not where your story begins "); sptype(name); sptype(".  You seek ");
-    sptype("only a simple life in your small home town of (NAME OF TOWN). Listen, your mother is calling you.  You should go to her now.\n\nare you ready? y/n");
-    GetInput(0, temp);
-    if(!compareStrings(temp, "y") || !compareStrings(temp, "yes")|| !compareStrings(temp, "yesiamready")|| !compareStrings(temp, "iamready")|| !compareStrings(temp, "imready"))
-        sptype("too bad\n");
-
-    sptype("Woman's Voice:"); sptype(name);sptype(", "); sptype(name);sptype("!  Where are You?\n");
-    sptype("(finish)");
+    chat("system", "welcome @n, to Esmyria.  Esmyria is a land of many wonders, where the forces of light and darkness clash continuously in the struggle for the upper hand.  Many heroes seek to make a name for themselves here... but that is not where your story begins @n.  After all, you've only ever wished for your quiet, peaceful life with your family and friends in your hometown secluded in the northwest most part of Esmyria, deep in the forest.  It's one of the few places in the country where one can avoid the daily conflicts and power struggles of the country, but... nothing stays the same forever...", UV);
+    //GetInput(0, temp);
+    //if(!compareStrings(temp, "y") && !compareStrings(temp, "yes") && !compareStrings(temp, "yesiamready") && !compareStrings(temp, "iamready") && !compareStrings(temp, "imready"))
+        //sptype("too bad\n");
+    //else
+        //sptype("Go now to Esmyria")
+    sptype("\n\n\n\n\n");
+    chat("Woman's Voice", "@p@n!", UV);
+    chat(name, "@p\t\a!@p@p", UV);
+    chat(name, "*I feel so tired, did I fall asleep on the hay?", UV);
+    chat("Woman's Voice", "@n, @n!", UV);
+    chat(name, "*And who's yelling for me?", UV);
+    chat("Woman's Voice", "@n@p@p, @n!@p@p  Where are you @n!?@p@p@p@p  @n if you were slacking off again!@p", UV);
+    chat(name, "@p\t\a!@p@p", UV);
+    chat(name, "*Oh no, I was supposed to be feeding the horses!@p", UV);
+    chat(name, "I'm right here mother!@p", UV);
+    int a;
+    a=getchar();
     return;
 }
 
 //delays with a null statement loopint
-void delay(float x)
+void delay(double x)
 {
-    int i;
-    for(i=0;i<(x*3000000);i++)
-        ;
+    double S=(CLOCKS_PER_SEC/1000)*x;
+    clock_t T=clock()+S;
+    clock_t T2=0;
+        while(T2<=T)
+        {
+            T2=clock();
+        }
     return;
 }
 
@@ -791,27 +834,178 @@ void sptype(char x[])
     int i = 0;
     while (x[i]!='\0')
     {   //prints characters one at a time
-        printf("%c", x[i]);
-        delay(10);
+        if (!(x[i]=='@'&&x[i+1]=='p'))
+            printf("%c", x[i]);
+        delay(30);
+        if(x[i]=='@'&&x[i+1]=='p')
+            delay(500);
         //takes extra time to print '.'
         if (x[i+1]=='.')
-            delay(100);
+            delay(650);
+        if ((x[i]=='@'&&x[i+1]=='p'))
+            i++;
         i++;
     }
 }
 
-void chat(char x[])
+void chat(char c[], char d[],char name[])
 {
+    if(debug==1)
+        printf("\nchat func\n");
+    //convert c & d from hard coded strings to alterable arrays
+    char x[500000]={'\0'};
+    char y[500000]={'\0'};
+    int b=0;
 
-    int width;
-    for (width=0;x[width]!='\0';width++);
-    if (width<120)
+    while (c[b]!='\0')
+    {
+        y[b] = c[b];
+        b++;
+    }
+    y[b]='\0';
+    insert( d, x, name);
+
+
+    int width, width2;
+    int hold=0;
+    char z[500000]={'\0'};
+    for (width=0;y[width]!='\0';width++);
+    for (width2=0;x[width2]!='\0';width2++);
+
+    //int print1=0;
+    if ((width2<89)&&(width<25))
+    {
+        //if (debug==1)
+            //printf("\n%s %s\n", y, x);
+        sptype(y);
+        sptype(":");
         sptype(x);
+        sptype("\n");
+        //if (debug==1)
+            //printf("\n%s %s\n", y, x);
+    }
+    else if ((114-width)>=25)
+    {
+        do
+        {
+            //if(detaildebug==1)
+                //printf("\nchat %d\n",print1++);
+            sptype(y);
+            sptype(":");
+            hold = stbreak(hold, (114-width), z, x);
+            sptype(z);
+            sptype("\n");
+        }while (hold!=(-1));
+    }
     else
-        ;
+        printf("\nerror in chat! identifier too long!\n\n");
   return;
 }
 
+int stbreak(int s, int e, char x[], char y[])
+{
+        if(debug==1)
+            printf("\nstbreak function\n");
+        int i = 0;
+        int ii = s;
+        while (((y[ii])!='\0')&&(i<e))
+        {
+            x[i]=y[ii];
+            if (y[ii]=='@'&&y[ii+1]=='p')
+                e+=2;
+            if(detaildebug==1)
+                printf("\nstbreak %d\n",ii);
+            if  (!((i==0) && (x[i]==' ')))
+                i++;
+            ii++;
+        }
+        if (x[i-1]!=' '&&y[ii]!='\0')
+        {
+            x[i]='-';
+            x[i+1]='\0';
+        }
+        else
+            x[i]='\0';
+
+        if ((y[ii]=='\0'))
+        {
+            ii = (-1);
+        }
+        return ii;
+}
+
+void insert(char x[],char y[],char name[])
+{
+    if(debug==1)
+        printf("\ninsert func\n");
+    int i = 0;
+    int width;
+    for (width=0;x[width]!='\0';width++);
+    int ii = 0;
+    while(x[i]!='\0')
+    {
+        //if(debug==1)
+        //printf("\n%s\t%c\t%c\n",y,x[i],y[ii]);
+            if(detaildebug==1)
+                printf("\ninsert %d",i);
+            if (x[i]!='@')
+            {
+                y[ii]=x[i];
+                i++;
+                ii++;
+            }
+            else if (x[i]=='@')
+            {
+                if(x[i+1]=='@')
+                {
+                    y[ii]='@';
+                    i+=2;
+                    ii++;
+                }
+                else if(x[i+1]=='n')
+                {
+                    ii=insertProcess(y,name,ii);
+                    i=i+2;
+                }
+                else if(x[i+1]=='p')
+                {
+                    ii=insertProcess(y,"@p",ii);
+                    i=i+2;
+                }
+                else if(x[i+1]=='b')
+                {
+                    ii=insertProcess(y,"boat_NAme",ii);
+                    i=2+i;
+                }
+                else
+                {
+                    printf("\nerror in insert, stray '@' IN STRING!\n");
+                }
+            }
+    }
+
+    if(debug==1)
+        printf("\n%s\t%c\t%c\n",y,x[i],y[ii]);
+    y[ii]='\0';
+    return;
+}
+
+insertProcess(char y[],char z[], int ii)
+{
+    if(debug==1)
+        printf("\nInsertPROCESS func\n");
+    int a;
+    for (a=0;z[a]!='\0';a++)
+    {
+        if(detaildebug==1)
+            printf("\ninsertProcess %d %d\n", a, ii);
+        y[ii]=z[a];
+        ii++;
+    }
+    if(debug==1)
+        printf("\n%s\n",y);
+    return ii;
+}
 
 void title()
 {
@@ -828,19 +1022,135 @@ void title()
   return;
 }
 
-void walk(int MapID,int* x_Pos,int* y_Pos, MAPSTRINGS)
+int walk(int MapID,int* x_Pos,int* y_Pos,char journey[], MAPSTRINGS, char name[])
 {
-    /*//checkL(MapID, x_Pos, y_Pos, MAPSTRINGS);
+    int x = 0, y = 0, var = 0, c = 0, loop2 = 0, loop1 = 0;
+    char walking[100]={'\0'};
+    char check[200]={'\0'};
+    do
+    {
+        do
+        {
+            printf("system:d-down, u-up, l-left, r-right, s-save, sq-save_and_quit:");
+            GetInput(0,walking);
+            AllClear(walking);
+            if ((compareStrings(walking, "up"))||(compareStrings(walking, "u")||(compareStrings(walking, "uup"))))
+            {
+                y = (*y_Pos - 1);
+                x = (*x_Pos);
+                loop2=1;
+            }
+            else if ((compareStrings(walking, "down"))||(compareStrings(walking, "d"))||(compareStrings(walking, "ddown")))
+            {
+                y = (*y_Pos + 1);
+                x = (*x_Pos);
+                loop2=1;
+            }
+            else if ((compareStrings(walking, "right"))||(compareStrings(walking, "r"))||(compareStrings(walking, "rright")))
+            {
+                x = (*x_Pos + 1);
+                y = (*y_Pos);
+                loop2=1;
+            }
+            else if ((compareStrings(walking, "left"))||(compareStrings(walking, "l"))||(compareStrings(walking, "lleft")))
+            {
+                x = (*x_Pos - 1);
+                y = (*y_Pos);
+                loop2=1;
+            }
+            else if ((compareStrings(walking, "save"))||(compareStrings(walking, "s"))||(compareStrings(walking, "ssave")))
+            {
+                var = 1;
+                loop2=1;
+            }
+            else if ((compareStrings(walking, "saveandquit"))||(compareStrings(walking, "sq"))||(compareStrings(walking, "sqsaveandquit"))||(compareStrings(walking, "sqsavequit"))||(compareStrings(walking, "savequit")))
+            {
+                var = 2;
+                loop2=1;
+            }
+            else if ((compareStrings(walking, "quit")))
+            {
+                var = 3;
+                loop2=1;
+            }
+            else
+                loop2=0;
+        }while (loop2==0);
 
+        c=checkL(MapID, x, y, check, journey, MAPSTRINGA);
+        if (c==1)
+        {
+            *x_Pos=x;
+            *y_Pos=y;
+            loop1=0;
+        }
+        else
+        {
+            if(compareStrings(check, "Mountain"))
+                chat(name, "A mountain blocks your path.\n", UV);
+            else if(compareStrings(check, "drown"))
+                chat(name, "I can't swim across the ocean!\n", UV);
+            else if(compareStrings(check, "fall\0"))
+                chat(name, "If I go any further, I'll fall off the edge of the world!\n", UV);
+            else
+                chat(name, "I can't do that", UV);
+            system("clear");
+            x = y = var =c = loop2 = 0;
+            printmap(*x_Pos, *y_Pos, MapID, MAPSTRINGA);
+            CStr(check,"\0");
+            CStr(walking,"\0");
+            loop1=1;
+        }
+    }while (loop1);
+    return var;
+}
 
-    if (MapID == MAINMAP)
-        if ((x_Pos==0) && (y_Pos==0))
-            printf("\nd-down, r-right, s-save, sq-save and quit:");
-        if ((x_Pos==0) && (y_Pos!=0) && (y_Pos<MMY))
-            printf("\nd-down, u-up, r-right, s-save, sq-save and quit:");
-        if ((x_Pos!=0) && (y_Pos==0) && (x_Pos<(MMX-1)))
-            printf("\nd-down, l-left, r-right, s-save, sq-save and quit:");
-        if ((x_Pos!=0) && (y_Pos!=0) && (x_Pos<(MMX-1)) && (y_Pos<MMY))
-            printf("\nd-down, u-up, l-left, r-right, s-save, sq-save and quit:");*/
+int checkL(int MapID,int x,int y, char var[200], char journey[], MAPSTRINGS)
+{
+    int check=1;
+    if (MapID==MAINMAP)
+    {
+        if (debug==1)
+            printf("\ncheckL\n");
+        if ((x>(MMX-1))||(x<0)||(y<0)||(y>MMY-1))
+        {
+            check=0;
+            CStr(var,"fall");
+        }
+        else if ((journey[1]=='0')&&(mainMap[x][y]==WATER))
+        {
+            check=0;
+            CStr(var,"drown");
+        }
+        else if ((journey[1]=='1')&&(mainMap[x][y]==WATER))
+            CStr(var,"b_boat");
+        else if ((journey[2]=='0')&&(mainMap[x][y]==MOUNTAINS))
+        {
+            check=0;
+            CStr(var,"Mountain");
+        }
+        else if ((journey[2]=='1')&&(mainMap[x][y]==MOUNTAINS))
+            CStr(var,"Climb");
+        else if (x==0&&y==0)
+            CStr(var,"home");
+        else if ((mainMap[x][y]=='T')||(mainMap[x][y]=='q')||(mainMap[x][y]==':')||(mainMap[x][y]=='O')||(mainMap[x][y]=='X'))
+            check=1;
+        else
+        {
+            printf("error in checkL");
+            check = 0;
+        }
+    }
+    return check;
+}
+
+void CStr(char str1[],char str2[])
+{
+    int i = 0;
+    while (str2[i]!='\0')
+    {
+        str1[i]=str2[i];
+        i++;
+    }
     return;
 }
