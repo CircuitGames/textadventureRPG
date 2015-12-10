@@ -25,7 +25,7 @@
 #define PATH                'O'   //O
 #define DESSERT             ':'   //:
 #define WATER               '^'   //^
-#define PLAINS              'i'   //i
+#define PLAINS              'q'   //q
 #define SPECIAL             'X'   //X
 #define MOUNTAINS           'A'   //A
 
@@ -62,6 +62,7 @@
 //global variables
 int debug = 0;
 int detaildebug = 0;
+int noDelay=0;
 
 void loadMaps(MAPSTRINGS);
 void printmap(int xp, int yp, int MapID, MAPSTRINGS);
@@ -92,6 +93,9 @@ int main()
     ///journey variables {'boat', 'mountaineering kit', '\0'}
     char  name[100] = {'\0'}, journey[50] = {'\0'}, mainMap[MMX][MMY], CMap[150*200] = {'\0'};
 
+    ///broken, need to fix with kbhit() alternative
+    //title();
+
     mstate=mainMenu();
     switch (mstate)
     {
@@ -104,7 +108,13 @@ int main()
             playerPath=0;
             break;
         case 2:
-            sptype("not implemented yet");
+            sptype("not implemented yet\n");
+            loadMaps(MAPSTRINGA);
+            MapID=1;
+            x_Pos=y_Pos=0;
+            journey[1]='0';
+            journey[2]='0';
+            playerPath=0;
             break;
         case 3:
             sptype("not implemented yet");
@@ -115,12 +125,12 @@ int main()
     }
     loadMaps(mainMap);
 
-    if (mstate==1)
+    if (mstate==1||mstate==2)
     {
         do
         {    if (debug==1)
             printf("\nmain loop\n");
-    
+
             //setCurrentMap(&MapID, CMap, &dimx, &dimy, MAPSTRINGA);
             printmap(x_Pos, y_Pos, MapID, MAPSTRINGA);
             playerPath=walk(MapID, &x_Pos, &y_Pos, journey, MAPSTRINGA, UV);
@@ -148,7 +158,7 @@ void loadMaps(MAPSTRINGS)
     fp=fopen("./data/maps/MainMap.dat", "r");
 
     //check if the file opened correctly; if not throw error and exit
-    if (fp == 0)
+    if (!fp)
     {
         printf("ERROR!  Couldn't open MainMap.dat!");
         exit(101);
@@ -227,8 +237,10 @@ void setCurrentMap(int* MapID, int CMap[],int* dimx, int* dimy, MAPSTRINGS)
 
 void printmap(int xp, int yp, int MapID, MAPSTRINGS)
 {
+    char hold=mainMap[xp][yp];
+    mainMap[xp][yp]='@';
     if (debug == 0)
-        system("clear");
+        system("cls");
     if (debug==1)
         printf("\nprintmap\n");
 
@@ -244,17 +256,14 @@ void printmap(int xp, int yp, int MapID, MAPSTRINGS)
         {
             for(x=0;x<MMX;x++)
             {
-                if (!(x==xp && y==yp))
                 printf("%c", mainMap[x][y]);
-                else
-                    printf("@");
             }
         }
-            printf("\n");
         for(x=0;x<MMX-1;x++)
             printf("=");
             printf("\n");
     }
+    mainMap[xp][yp]=hold;
     return;
 }
 
@@ -263,7 +272,7 @@ int mainMenu()
     if (debug==1)
         printf("\nmainmenu\n");
     //char arrays[] = {'5','\0'};
-    system("clear");
+    system("cls");
     disMainMenue();
 
     char x[75] = {'\0'};
@@ -751,14 +760,14 @@ void newgame(char name[])//name is passed in to get the players username
     int t1,t2;
     //start new game
     printf("starting new game");
-    system("clear");
+    system("cls");
     sptype("starting new game...");
 
     //code to get the player's name
     do
     {
         printf("\n\n");
-        system("clear");
+        system("cls");
         sptype("Please enter your name: ");
         GetInput(0, name);
         sptype("\nI see, your name is ");
@@ -792,9 +801,9 @@ void newgame(char name[])//name is passed in to get the players username
     }while (check == 0);         //ends name loops
 
     //clear screen and begin the introduction to the game.
-    system("clear");
+    system("cls");
     char temp[]={'\0'};
-    chat("system", "welcome @n, to Esmyria.  Esmyria is a land of many wonders, where the forces of light and darkness clash continuously in the struggle for the upper hand.  Many heroes seek to make a name for themselves here... but that is not where your story begins @n.  After all, you've only ever wished for your quiet, peaceful life with your family and friends in your hometown secluded in the northwest most part of Esmyria, deep in the forest.  It's one of the few places in the country where one can avoid the daily conflicts and power struggles of the country, but... nothing stays the same forever...", UV);
+    chat("system", "Welcome @n, to Esmyria.  Esmyria is a land of many wonders, where the forces of light and darkness clash continuously in the struggle for the upper hand.  Many heroes seek to make a name for themselves here... but that is not where your story begins @n.  After all, you've only ever wished for your quiet, peaceful life with your family and friends in your hometown secluded in the northwest most part of Esmyria, deep in the forest.  It's one of the few places in the country where one can avoid the daily conflicts and power struggles of the country, but... nothing stays the same forever...", UV);
     //GetInput(0, temp);
     //if(!compareStrings(temp, "y") && !compareStrings(temp, "yes") && !compareStrings(temp, "yesiamready") && !compareStrings(temp, "iamready") && !compareStrings(temp, "imready"))
         //sptype("too bad\n");
@@ -810,21 +819,25 @@ void newgame(char name[])//name is passed in to get the players username
     chat(name, "@p\t\a!@p@p", UV);
     chat(name, "*Oh no, I was supposed to be feeding the horses!@p", UV);
     chat(name, "I'm right here mother!@p", UV);
-    printf("press any key to continue...");
-    getch();
+    chat("Mother", "You weren't sleeping instead of doing your chores again, were you?@p", UV);
+    chat(name, "No mom!@p  Of course not!, I was just going to start feeding the horses like you asked my to.", UV);
+    while (getch()==EOF);
     return;
 }
 
 //delays with a null statement loopint
 void delay(double x)
 {
-    double S=(CLOCKS_PER_SEC/1000)*x;
-    clock_t T=clock()+S;
-    clock_t T2=0;
-        while(T2<=T)
-        {
-            T2=clock();
-        }
+    if(!noDelay)
+    {
+        double S=(CLOCKS_PER_SEC/1000)*x;
+        clock_t T=clock()+S;
+        clock_t T2=0;
+            while(T2<=T)
+            {
+                T2=clock();
+            }
+    }
     return;
 }
 
@@ -835,15 +848,18 @@ void sptype(char x[])
     while (x[i]!='\0')
     {   //prints characters one at a time
         if (!(x[i]=='@'&&x[i+1]=='p'))
+        {
             printf("%c", x[i]);
-        delay(30);
-        if(x[i]=='@'&&x[i+1]=='p')
+            delay(30);
+        }
+        else
+        {
             delay(500);
-        //takes extra time to print '.'
-        if (x[i+1]=='.')
-            delay(650);
-        if ((x[i]=='@'&&x[i+1]=='p'))
             i++;
+        }
+        //takes extra time to print '.'
+        if (x[i-1]=='.')
+            delay(650);
         i++;
     }
 }
@@ -1009,16 +1025,105 @@ insertProcess(char y[],char z[], int ii)
 
 void title()
 {
-    printf("                                                                                                                       \n");
-    printf("                                                                                                                       \n");
-    printf("                                                                                                                       \n");
-    printf("                                                                                                                       \n");
-    printf("                                                                                                                       \n");
-    printf("                                                                                                                       \n");
-    printf("                                                                                                                       \n");
-    printf("                                                                                                                       \n");
-    printf("                                                                                                                       \n");
-    printf("                                                                                                                       \n");
+    char a;
+    a=getch();
+    do
+    {
+        system("cls");
+        printf("            /\\        x000x    x000x   x0      0x  x000x  x000x    xxxxx     xxx   \n");
+        printf("           /  \\       0       x        0 0    0 0  0      0    x     0      0   0  \n");
+        printf("          /____\\      0      0         0 x    x 0  0      0    0     0     0     0 \n");
+        printf("         | |  | |     0       x        0  x  x  0  0      0   x      0     0     0 \n");
+        printf("         | |  | |     x000x    x00x    0  0  0  0  x000x  x00x0      0     xxxxxxx \n");
+        printf("         | |  | |     0            x   0  x  x  0  0      0    0     0     0     0 \n");
+        printf("         |_|__|_|     0             0  0   xx   0  0      0    0     0     0     0 \n");
+        printf("          \\    /      0            x   x   00   x  0      0     0    0    x       x\n");
+        printf("           \\  /       x000x   x000x    x   xx   x  x000x  0     0  xxxxx  x       x\n");
+        printf("            \\/                          press -Enter to start                      \n");
+
+        a=getch();
+        if (a=='\n')
+            break;
+
+        system("cls");
+        printf("            /\\        XOOOX    XOOOX   XO      OX  XOOOX  XOOOX    XXXXX     XXX   \n");
+        printf("           /  \\       O       X        O O    O O  O      O    X     O      O   O  \n");
+        printf("          /____\\      O      O         O X    X O  O      O    O     O     O     O \n");
+        printf("          | |  | |    O       X        O  X  X  O  O      O   X      O     O     O \n");
+        printf("          | |  | |    XOOOX    XOOX    O  O  O  O  XOOOX  XOOXO      O     XXXXXXX \n");
+        printf("          | |  | |    O            X   O  X  X  O  O      O    O     O     O     O \n");
+        printf("          |_|__|_|    O             O  O   XX   O  O      O    O     O     O     O \n");
+        printf("          \\    /      O            X   X   OO   X  O      O     O    O    X       X\n");
+        printf("           \\  /       XOOOX   XOOOX    X   XX   X  XOOOX  O     O  XXXXX  X       X\n");
+        printf("            \\/                          PRESS -ENTER TO START                      \n");
+
+        a=getch();
+        if (a=='\n')
+            break;
+
+        system("cls");
+        printf("            /\\        x000x    x000x   x0      0x  x000x  x000x    xxxxx     xxx   \n");
+        printf("           /  \\       0       x        0 0    0 0  0      0    x     0      0   0  \n");
+        printf("          /____\\      0      0         0 x    x 0  0      0    0     0     0     0 \n");
+        printf("         | |  | |      0       x        0  x  x  0  0      0   x      0     0     0 \n");
+        printf("         | |  | |      x000x    x00x    0  0  0  0  x000x  x00x0      0     xxxxxxx \n");
+        printf("         | |  | |      0            x   0  x  x  0  0      0    0     0     0     0 \n");
+        printf("         |_|__|_|      0             0  0   xx   0  0      0    0     0     0     0 \n");
+        printf("          \\    /      0            x   x   00   x  0      0     0    0    x       x\n");
+        printf("           \\  /       x000x   x000x    x   xx   x  x000x  0     0  xxxxx  x       x\n");
+        printf("            \\/                          press -Enter to start                      \n");
+
+        a=getch();
+        if (a=='\n')
+            break;
+
+        system("cls");
+        printf("            /\\        *ooo*    *ooo*   *o      o*  *ooo*  *ooo*    *****     ***   \n");
+        printf("           /  \\       o       *        o o    o o  o      o    *     o      o   o  \n");
+        printf("          /____\\      o      o         o *    * o  o      o    o     o     o     o \n");
+        printf("          | |  | |     o       *        o  *  *  o  o      o   *      o     o     o \n");
+        printf("          | |  | |     *ooo*    *oo*    o  o  o  o  *ooo*  *oo*o      o     ******* \n");
+        printf("          | |  | |     o            *   o  *  *  o  o      o    o     o     o     o \n");
+        printf("          |_|__|_|     o             o  o   **   o  o      o    o     o     o     o \n");
+        printf("          \\    /      o            *   *   oo   *  o      o     o    o    *       *\n");
+        printf("           \\  /       *ooo*   *ooo*    *   **   *  *ooo*  o     o  *****  *       *\n");
+        printf("            \\/                          ***** _***** ** *****                      \n");
+
+        a=getch();
+        if (a=='\n')
+            break;
+
+        system("cls");
+        printf("            /\\ \n");
+        printf("           /  \\ \n");
+        printf("          /____\\ \n");
+        printf("         | |  | | \n");
+        printf("         | |  | | \n");
+        printf("         | |  | | \n");
+        printf("         |_|__|_| \n");
+        printf("          \\    / \n");
+        printf("           \\  / \n");
+        printf("            \\/ \n");
+
+        a=getch();
+        if ('\n'==a)
+            break;
+
+        system("cls");
+        printf("            /\\        *ooo*    *ooo*   *o      o*  *ooo*  *ooo*    *****     ***   \n");
+        printf("           /  \\       o       *        o o    o o  o      o    *     o      o   o  \n");
+        printf("          /____\\      o      o         o *    * o  o      o    o     o     o     o \n");
+        printf("          | |  | |     o       *        o  *  *  o  o      o   *      o     o     o \n");
+        printf("          | |  | |     *ooo*    *oo*    o  o  o  o  *ooo*  *oo*o      o     ******* \n");
+        printf("          | |  | |     o            *   o  *  *  o  o      o    o     o     o     o \n");
+        printf("          |_|__|_|     o             o  o   **   o  o      o    o     o     o     o \n");
+        printf("          \\    /      o            *   *   oo   *  o      o     o    o    *       *\n");
+        printf("           \\  /       *ooo*   *ooo*    *   **   *  *ooo*  o     o  *****  *       *\n");
+        printf("            \\/                          ***** _***** ** *****                      \n");
+
+        kbhit()
+            a=getch();
+    } while ((a)!='\n');
   return;
 }
 
@@ -1029,10 +1134,11 @@ int walk(int MapID,int* x_Pos,int* y_Pos,char journey[], MAPSTRINGS, char name[]
     char check[200]={'\0'};
     do
     {
+        printf("System: wasd to move, q to quit...");
         do
         {
-            printf("System: WASD to move.  Q or E to quit.");
             walking=getch();
+
             if (walking=='w')
             {
                 y = (*y_Pos - 1);
@@ -1057,20 +1163,21 @@ int walk(int MapID,int* x_Pos,int* y_Pos,char journey[], MAPSTRINGS, char name[]
                 y = (*y_Pos);
                 loop2=1;
             }
-            ///this will eventually save the game, currently it quits
-            else if (walking=='e')
+            else if (walking=='q')
             {
+                //save
                 var = 1;
                 loop2=1;
             }
-            ///this is a place holder for a function at is not yet implemented and redundent
-            //else if (walking=='save and quit')
-            //{
-            //    var = 2;
-            //    loop2=1;
-            //}
-            else if(walking=='q')
+            else if (walking=='e')
             {
+                //save and quit
+                var = 2;
+                loop2=1;
+            }
+            else if (walking=='e')
+            {
+                //quit
                 var = 3;
                 loop2=1;
             }
@@ -1088,20 +1195,20 @@ int walk(int MapID,int* x_Pos,int* y_Pos,char journey[], MAPSTRINGS, char name[]
         else
         {
             if(compareStrings(check, "Mountain"))
-                chat(name, "A mountain blocks your path.\n", UV);
+                chat(name, "A mountain blocks my path.@p", UV);
             else if(compareStrings(check, "drown"))
-                chat(name, "I can't swim across the ocean!\n", UV);
-            else if(compareStrings(check, "fall\0"))
-                chat(name, "If I go any further, I'll fall off the edge of the world!\n", UV);
+                chat(name, "I can't swim across the ocean!@p@p", UV);
+            else if(compareStrings(check, "fall"))
+                chat(name, "If I go any further, I'll fall off the edge of the world!@p@p", UV);
             else
-                chat(name, "I can't do that", UV);
-            system("clear");
+                chat(name, "I can't do that!@p@p", UV);
             x = y = var =c = loop2 = 0;
             printmap(*x_Pos, *y_Pos, MapID, MAPSTRINGA);
             CStr(check,"\0");
             CStr(walking,"\0");
             loop1=1;
         }
+        delay(100);
     }while (loop1);
     return var;
 }
