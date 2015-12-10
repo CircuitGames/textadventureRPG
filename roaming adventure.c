@@ -810,8 +810,8 @@ void newgame(char name[])//name is passed in to get the players username
     chat(name, "@p\t\a!@p@p", UV);
     chat(name, "*Oh no, I was supposed to be feeding the horses!@p", UV);
     chat(name, "I'm right here mother!@p", UV);
-    int a;
-    a=getchar();
+    printf("press any key to continue...");
+    getch();
     return;
 }
 
@@ -1025,50 +1025,51 @@ void title()
 int walk(int MapID,int* x_Pos,int* y_Pos,char journey[], MAPSTRINGS, char name[])
 {
     int x = 0, y = 0, var = 0, c = 0, loop2 = 0, loop1 = 0;
-    char walking[100]={'\0'};
+    char walking;
     char check[200]={'\0'};
     do
     {
         do
         {
-            printf("system:d-down, u-up, l-left, r-right, s-save, sq-save_and_quit:");
-            GetInput(0,walking);
-            AllClear(walking);
-            if ((compareStrings(walking, "up"))||(compareStrings(walking, "u")||(compareStrings(walking, "uup"))))
+            printf("System: WASD to move.  Q or E to quit.");
+            walking=getch();
+            if (walking=='w')
             {
                 y = (*y_Pos - 1);
                 x = (*x_Pos);
                 loop2=1;
             }
-            else if ((compareStrings(walking, "down"))||(compareStrings(walking, "d"))||(compareStrings(walking, "ddown")))
+            else if (walking=='s')
             {
                 y = (*y_Pos + 1);
                 x = (*x_Pos);
                 loop2=1;
             }
-            else if ((compareStrings(walking, "right"))||(compareStrings(walking, "r"))||(compareStrings(walking, "rright")))
+            else if (walking=='d')
             {
                 x = (*x_Pos + 1);
                 y = (*y_Pos);
                 loop2=1;
             }
-            else if ((compareStrings(walking, "left"))||(compareStrings(walking, "l"))||(compareStrings(walking, "lleft")))
+            else if (walking=='a')
             {
                 x = (*x_Pos - 1);
                 y = (*y_Pos);
                 loop2=1;
             }
-            else if ((compareStrings(walking, "save"))||(compareStrings(walking, "s"))||(compareStrings(walking, "ssave")))
+            ///this will eventually save the game, currently it quits
+            else if (walking=='e')
             {
                 var = 1;
                 loop2=1;
             }
-            else if ((compareStrings(walking, "saveandquit"))||(compareStrings(walking, "sq"))||(compareStrings(walking, "sqsaveandquit"))||(compareStrings(walking, "sqsavequit"))||(compareStrings(walking, "savequit")))
-            {
-                var = 2;
-                loop2=1;
-            }
-            else if ((compareStrings(walking, "quit")))
+            ///this is a place holder for a function at is not yet implemented and redundent
+            //else if (walking=='save and quit')
+            //{
+            //    var = 2;
+            //    loop2=1;
+            //}
+            else if(walking=='q')
             {
                 var = 3;
                 loop2=1;
